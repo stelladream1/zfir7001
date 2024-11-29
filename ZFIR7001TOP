@@ -1,0 +1,81 @@
+*&---------------------------------------------------------------------*
+*& Include ZFIR7001TOP                              - Report ZFIR7001
+*&---------------------------------------------------------------------*
+REPORT ZFIR7001.
+
+TYPES: BEGIN OF TY_S_F92,
+         NEWBS TYPE RF05A-NEWBS,  "전기키
+         NEWKO TYPE RF05A-NEWKO,  "계정
+         WRBTR TYPE BDC_FVAL,     "금액
+         BUPLA TYPE BSEG-BUPLA,   "사업장
+         GSBER TYPE COBL-GSBER,   "사업 영역
+         KOSTL TYPE COBL-KOSTL,   "코스트 센터
+         SGTXT TYPE BSEG-SGTXT,    "텍스트
+         ANLN1 TYPE RLAMBU-ANLN1, "자산
+         ANLN2 TYPE RLAMBU-ANLN2, "하위번호
+         BWASL TYPE RLAMBU-BWASL, "거래유형
+         BZDAT TYPE RLAMBU-BZDAT. "자산평가기준일
+TYPES: END OF TY_S_F92.
+
+INCLUDE <icon>.
+TABLES: SSCRFIELDS.
+DATA: G_FUNCTION_KEY TYPE SMP_DYNTXT.
+
+DATA: GT_DATA       TYPE STANDARD TABLE OF TY_S_F92,
+      GS_CTU_PARAMS TYPE CTU_PARAMS,
+      GT_BDCDATA    TYPE STANDARD TABLE OF BDCDATA,
+      GT_MESSTAB    TYPE STANDARD TABLE OF BDCMSGCOLL,
+      GS_MESSTAB    LIKE LINE OF GT_MESSTAB.
+
+DATA: GV_ROW   TYPE I VALUE 2,
+      GT_EXCEL TYPE TABLE OF ZFIS0009.
+
+DATA: OK_CODE TYPE SY-UCOMM.
+DATA: GV_ERROR TYPE STRING.
+
+
+CONSTANTS: GC_START(1)            VALUE 'T',
+           GC_PROG(30)            VALUE 'SAPMF05A',
+           GC_PROG2(30)           VALUE 'SAPLFAA_MF05A',
+           GC_TCODE(10)           VALUE 'F-92',
+           GC_SCR_0100(4)         VALUE '0100',
+           GC_SCR_0210(4)         VALUE '0210',
+           GC_SCR_0300(4)         VALUE '0300',
+           GC_SCR_0301(4)         VALUE '0301',
+           GC_SCR_0700(4)         VALUE '0700',
+           GC_BDC_CURSOR(20)      VALUE 'BDC_CURSOR',
+           GC_BDC_OKCODE(20)      VALUE 'BDC_OKCODE',
+           GC_BKPF_BLDAT(20)      VALUE 'BKPF-BLDAT',
+           GC_BKPF_BLART(20)      VALUE 'BKPF-BLART',
+           GC_BKPF_BUKRS(20)      VALUE 'BKPF-BUKRS',
+           GC_BKPF_BUDAT(20)      VALUE 'BKPF-BUDAT',
+           GC_BKPF_MONAT(20)      VALUE 'BKPF-MONAT',
+           GC_BKPF_WAERS(20)      VALUE 'BKPF-WAERS',
+           GC_BKPF_BKTXT(20)      VALUE 'BKPF-BKTXT',
+           GC_RF05A_NEWBS(20)     VALUE 'RF05A-NEWBS',
+           GC_RF05A_NEWKO(20)     VALUE 'RF05A-NEWKO',
+           GC_BDC_SUBSCR(20)      VALUE 'BDC_SUBSCR',
+           GC_BSEG_HKONT(20)      VALUE 'BSEG-HKONT',
+           GC_BSEG_WRBTR(20)      VALUE 'BSEG-WRBTR',
+           GC_BSEG_GSBER(20)      VALUE 'BSEG-GSBER',
+           GC_BSEG_WMWST(20)      VALUE 'BSEG-WMWST',
+           GC_BSEG_MWSKZ(20)      VALUE 'BSEG-MWSKZ',
+           GC_BSEG_BUPLA(20)      VALUE 'BSEG-BUPLA',
+           GC_BSEG_ZFBDT(20)      VALUE 'BSEG-ZFBDT',
+           GC_BSEG_ZTERM(20)      VALUE 'BSEG-ZTERM',
+           GC_BSEG_ZLSCH(20)      VALUE 'BSEG-ZLSCH',
+           GC_BSEG_SGTXT(20)      VALUE 'BSEG-SGTXT',
+           GC_BKPF_VATDATE(20)    VALUE 'BKPF-VATDATE',
+           GC_RF05A_XAABG(20)     VALUE 'RF05A-XAABG',
+           GC_COBL_GSBER(20)      VALUE 'COBL-GSBER',
+           GC_COBL_KOSTL(20)      VALUE 'COBL-KOSTL',
+           GC_GS_RLAMBU_ANLN1(20) VALUE 'GS_RLAMBU-ANLN1',
+           GC_GS_RLAMBU_ANLN2(20) VALUE 'GS_RLAMBU-ANLN2',
+           GC_GS_RLAMBU_BWASL(20) VALUE 'GS_RLAMBU-BWASL',
+           GC_GS_RLAMBU_BZDAT(20) VALUE 'GS_RLAMBU-BZDAT',
+           GC_GS_RLAMBU_XVABG(20) VALUE 'GS_RLAMBU-XVABG',
+           GC_COBL_ANLN1(20)      VALUE 'COBL-ANLN1',
+           GC_COBL_ANLN2(20)      VALUE 'COBL-ANLN2',
+           GC_SUBSCR01(128)       VALUE 'SAPMF05A                                1300APPL_SUB_T',
+           GC_SUBSCR02(128)       VALUE 'SAPLZFIFG701                            1300APPL_SUB',
+           GC_SUBSCR03(128)       VALUE 'SAPLKACB                                1007BLOCK'.
