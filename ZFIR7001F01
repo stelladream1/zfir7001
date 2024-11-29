@@ -1,0 +1,528 @@
+*&---------------------------------------------------------------------*
+*& Include          ZFIR7001F01
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*& Form F4_FNAME
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*&      --> PA_FNAME
+*&---------------------------------------------------------------------*
+FORM F4_FNAME  USING    PA_FNAME.
+
+  DATA: LV_DIRECTORY  TYPE STRING,
+        LT_FILE_TABLE TYPE FILETABLE,
+        LV_RC         TYPE I.
+
+  CALL METHOD CL_GUI_FRONTEND_SERVICES=>FILE_OPEN_DIALOG
+    EXPORTING
+      WINDOW_TITLE      = CONV #( | { TEXT-007 }| )
+      DEFAULT_EXTENSION = CONV #( | { TEXT-008 }| )
+      DEFAULT_FILENAME  = SPACE
+      FILE_FILTER       = CL_GUI_FRONTEND_SERVICES=>FILETYPE_EXCEL
+      INITIAL_DIRECTORY = LV_DIRECTORY
+    CHANGING
+      FILE_TABLE        = LT_FILE_TABLE
+      RC                = LV_RC
+    EXCEPTIONS
+      OTHERS            = 5.
+
+  READ TABLE LT_FILE_TABLE INTO PA_FNAME INDEX 1.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form UPLOAD_EXCEL
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM UPLOAD_EXCEL .
+
+  CALL FUNCTION 'ZFC_FICM_ALSM_EXCEL_TO_ITAB'
+    EXPORTING
+      FILENAME                = PA_FNAME
+      I_BEGIN_COL             = 1
+      I_BEGIN_ROW             = GV_ROW
+      I_END_COL               = 10
+      I_END_ROW               = 60000
+    TABLES
+      INTERN                  = GT_EXCEL
+    EXCEPTIONS
+      INCONSISTENT_PARAMETERS = 1
+      UPLOAD_OLE              = 2
+      OTHERS                  = 3.
+
+  IF GT_EXCEL IS NOT INITIAL.
+    PERFORM INSERT_DATA.
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form INSERT_DATA
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM INSERT_DATA .
+
+  DATA: LV_ROW TYPE I.
+  LV_ROW = 0.
+
+  LOOP AT GT_EXCEL INTO DATA(LS_EXCEL).
+    IF LV_ROW <> LS_EXCEL-ROW.
+      APPEND INITIAL LINE TO GT_DATA ASSIGNING FIELD-SYMBOL(<FS_DATA>).
+    ENDIF.
+
+    CASE LS_EXCEL-COL.
+      WHEN 1.
+        <FS_DATA>-NEWBS = LS_EXCEL-VALUE.
+      WHEN 2.
+        <FS_DATA>-NEWKO = LS_EXCEL-VALUE.
+      WHEN 3.
+        REPLACE ALL OCCURRENCES OF: ',' IN  LS_EXCEL-VALUE WITH ''.
+        <FS_DATA>-WRBTR = LS_EXCEL-VALUE.
+      WHEN 4.
+        <FS_DATA>-BUPLA = LS_EXCEL-VALUE.
+      WHEN 5.
+        <FS_DATA>-GSBER = LS_EXCEL-VALUE.
+      WHEN 6.
+        <FS_DATA>-KOSTL = LS_EXCEL-VALUE.
+      WHEN 7.
+        <FS_DATA>-SGTXT = LS_EXCEL-VALUE.
+      WHEN 8.
+        <FS_DATA>-ANLN1 = LS_EXCEL-VALUE.
+      WHEN 9.
+        <FS_DATA>-BWASL = LS_EXCEL-VALUE.
+      WHEN 10.
+        <FS_DATA>-BZDAT = LS_EXCEL-VALUE.
+    ENDCASE.
+
+    LV_ROW = LS_EXCEL-ROW.
+
+  ENDLOOP.
+  DELETE GT_DATA WHERE TABLE_LINE IS INITIAL.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form BDC_RECORDING
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM BDC_RECORDING .
+
+  PERFORM INIT_DATA.
+
+  LOOP AT GT_DATA ASSIGNING FIELD-SYMBOL(<FS_DATA>).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( PROGRAM = GC_PROG       DYNPRO  = GC_SCR_0700  DYNBEGIN  = 'X') ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_CURSOR    FVAL = GC_RF05A_NEWKO ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_OKCODE    FVAL = '/00' ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_RF05A_NEWBS   FVAL = <FS_DATA>-NEWBS ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_RF05A_NEWKO   FVAL = <FS_DATA>-NEWKO ) ).
+
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( PROGRAM = GC_PROG       DYNPRO  = GC_SCR_0300  DYNBEGIN  = 'X') ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_CURSOR    FVAL = GC_RF05A_XAABG ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_OKCODE    FVAL = '/00' ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BSEG_WRBTR    FVAL = <FS_DATA>-WRBTR ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BSEG_BUPLA    FVAL = P_BUPLA ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_RF05A_XAABG   FVAL = 'X' ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BSEG_SGTXT    FVAL = <FS_DATA>-SGTXT ) ).
+*    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_SUBSCR    FVAL = GC_SUBSCR03 ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_COBL_GSBER    FVAL = <FS_DATA>-GSBER ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_COBL_KOSTL    FVAL = <FS_DATA>-KOSTL ) ).
+
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( PROGRAM = GC_PROG2           DYNPRO  = GC_SCR_0210  DYNBEGIN  = 'X') ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_CURSOR         FVAL = GC_GS_RLAMBU_XVABG ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_OKCODE         FVAL = '=GOON' ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_GS_RLAMBU_ANLN1    FVAL = <FS_DATA>-ANLN1 ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_GS_RLAMBU_BWASL    FVAL = <FS_DATA>-BWASL ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_GS_RLAMBU_BZDAT    FVAL = <FS_DATA>-BZDAT ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_GS_RLAMBU_XVABG    FVAL = 'X' ) ).
+
+
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( PROGRAM = GC_PROG       DYNPRO  = GC_SCR_0300  DYNBEGIN  = 'X') ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_CURSOR    FVAL = GC_BSEG_WRBTR ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_OKCODE    FVAL = '=AB' ) ).
+  ENDLOOP.
+
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( PROGRAM = GC_PROG       DYNPRO  = GC_SCR_0700  DYNBEGIN  = 'X') ).
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_CURSOR    FVAL = GC_RF05A_NEWBS ) ).
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_OKCODE    FVAL = '=BS' ) ).
+
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( PROGRAM = GC_PROG       DYNPRO  = GC_SCR_0700  DYNBEGIN  = 'X') ).
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_CURSOR    FVAL = GC_RF05A_NEWBS ) ).
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_OKCODE    FVAL = '=BU' ) ).
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form INIT_DATA
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM INIT_DATA .
+  DATA: LV_WRBTR TYPE BDC_FVAL,
+        LV_WMWST TYPE BDC_FVAL.
+
+  DATA: LV_OKCODE(10).
+  GS_CTU_PARAMS-UPDMODE  = 'S'.
+  GS_CTU_PARAMS-CATTMODE = ''.
+  GS_CTU_PARAMS-DISMODE  = P_BDC.
+  GS_CTU_PARAMS-DEFSIZE  = ''.
+  GS_CTU_PARAMS-RACOMMIT = 'X'.
+  GS_CTU_PARAMS-NOBINPT  = 'X'.
+  GS_CTU_PARAMS-NOBIEND  = ''.
+
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( DYNBEGIN = GC_START   FNAM  = GC_TCODE ) ).
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( PROGRAM = GC_PROG     DYNPRO  = GC_SCR_0100  DYNBEGIN  = 'X') ).
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_CURSOR  FVAL = GC_RF05A_NEWKO ) ).
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_OKCODE  FVAL = '/00' ) ).
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BKPF_BLDAT  FVAL = P_BLDAT ) ).
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BKPF_BLART  FVAL = P_BLART ) ).
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BKPF_BUKRS  FVAL = P_BUKRS ) ).
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BKPF_BUDAT  FVAL = P_BUDAT ) ).
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BKPF_MONAT  FVAL = P_MONAT ) ).
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BKPF_WAERS  FVAL = P_WAERS ) ).
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BKPF_BKTXT  FVAL = P_BKTXT ) ).
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_RF05A_NEWBS FVAL = P_NEWBS ) ).
+  GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_RF05A_NEWKO FVAL = P_NEWKO ) ).
+
+
+  DO 2 TIMES.
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( PROGRAM = GC_PROG     DYNPRO  = GC_SCR_0301  DYNBEGIN  = 'X') ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_CURSOR  FVAL = GC_BSEG_SGTXT ) ).
+    CASE SY-INDEX.
+      WHEN 1.
+        GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_OKCODE  FVAL = '/00' ) ).
+      WHEN 2.
+        GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BDC_OKCODE  FVAL = '=AB' ) ).
+    ENDCASE.
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BSEG_HKONT  FVAL = P_HKONT ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BSEG_WRBTR  FVAL = P_WRBTR ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BSEG_WRBTR  FVAL = P_WRBTR ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BSEG_GSBER  FVAL = P_GSBER ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BSEG_WMWST  FVAL = P_WMWST ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BSEG_MWSKZ  FVAL = P_MWSKZ ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BSEG_BUPLA  FVAL = P_BUPLA ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BSEG_ZFBDT  FVAL = P_ZFBDT ) ).
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BSEG_ZTERM  FVAL = P_ZTERM ) ).
+    IF SY-INDEX = 1.
+      GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BSEG_ZLSCH  FVAL = P_ZLSCH ) ).
+    ENDIF.
+    GT_BDCDATA = VALUE #( BASE GT_BDCDATA ( FNAM = GC_BSEG_SGTXT  FVAL = P_SGTXT ) ).
+  ENDDO.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form CALL_TRANSACTION
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM CALL_TRANSACTION .
+  DATA: LV_IS_ERROR TYPE abap_bool,
+        LV_MSG_TYPE TYPE BDC_MART.
+
+  DATA: LS_RFOPT2_OLD TYPE RFOPT2,
+        LS_RFOPT2_NEW TYPE RFOPT2.
+  GET PARAMETER ID 'FO2' FIELD LS_RFOPT2_OLD.
+
+  IF SY-SUBRC = 0.
+    LS_RFOPT2_NEW = CORRESPONDING #( LS_RFOPT2_OLD ).
+    CLEAR LS_RFOPT2_NEW-XBALV.  " X: ALV Grid, ' ': Classic
+    SET PARAMETER ID 'FO2' FIELD LS_RFOPT2_NEW.
+  ENDIF.
+
+  CALL TRANSACTION GC_TCODE       USING  GT_BDCDATA
+                                  OPTIONS  FROM GS_CTU_PARAMS
+                                  MESSAGES INTO GT_MESSTAB.
+  CLEAR GS_MESSTAB.
+  DATA: LV_MSG TYPE C LENGTH 100.
+
+  READ TABLE GT_MESSTAB INTO GS_MESSTAB WITH KEY MSGTYP = 'E'.
+
+  IF SY-SUBRC EQ 0.
+    LV_IS_ERROR = abap_true.
+    LV_MSG_TYPE = 'E'.
+  ELSE .
+    READ TABLE GT_MESSTAB INTO GS_MESSTAB WITH KEY MSGID = 'F5' MSGNR = '060' .
+    IF SY-SUBRC = 0.
+      LV_IS_ERROR = abap_true.
+      LV_MSG_TYPE = 'E'.
+    ELSE.
+      READ TABLE GT_MESSTAB INTO GS_MESSTAB WITH KEY MSGID = 'F5' MSGNR = '312' .
+      IF SY-SUBRC = 0.
+        LV_MSG_TYPE = 'I'.
+      ENDIF.
+    ENDIF.
+  ENDIF.
+
+  CALL FUNCTION 'FORMAT_MESSAGE'
+    EXPORTING
+      ID        = GS_MESSTAB-MSGID
+      LANG      = SY-LANGU
+      NO        = GS_MESSTAB-MSGNR
+      V1        = GS_MESSTAB-MSGV1
+      V2        = GS_MESSTAB-MSGV2
+      V3        = GS_MESSTAB-MSGV3
+      V4        = GS_MESSTAB-MSGV4
+    IMPORTING
+      MSG       = LV_MSG
+    EXCEPTIONS
+      NOT_FOUND = 1
+      OTHERS    = 2.
+
+  IF LV_MSG IS NOT INITIAL.
+    IF LV_IS_ERROR = 'X'.
+      MESSAGE LV_MSG TYPE 'S' DISPLAY LIKE LV_MSG_TYPE.
+    ELSE.
+      MESSAGE LV_MSG TYPE LV_MSG_TYPE.
+    ENDIF.
+
+  ENDIF.
+
+  SET PARAMETER ID 'FO2' FIELD ls_rfopt2_old.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form F4_HKONT
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM F4_HKONT .
+
+  SELECT B~BUKRS, B~SAKNR, A~TXT20
+   FROM SKB1 AS B
+   LEFT JOIN SKAT AS A
+        ON  B~SAKNR = A~SAKNR
+        AND A~SPRAS = @SY-LANGU
+    WHERE B~MITKZ = 'D'
+     AND  B~BUKRS = @P_BUKRS
+    INTO TABLE @DATA(LT_HKONT).
+
+  CALL FUNCTION 'F4IF_INT_TABLE_VALUE_REQUEST'
+    EXPORTING
+      RETFIELD    = 'SAKNR'
+      DYNPPROG    = SY-REPID
+      DYNPNR      = SY-DYNNR
+      VALUE_ORG   = 'S'
+      DYNPROFIELD = 'P_HKONT'
+    TABLES
+      VALUE_TAB   = LT_HKONT.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_BUTTON
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_BUTTON .
+  G_FUNCTION_KEY-ICON_ID = ICON_XLS.
+  G_FUNCTION_KEY-ICON_TEXT = TEXT-011.
+  G_FUNCTION_KEY-TEXT      = TEXT-011.
+  SSCRFIELDS-FUNCTXT_01    = G_FUNCTION_KEY.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form SET_FKEY
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM SET_FKEY .
+  TYPES: BEGIN OF TY_T_TEMPLATE,
+           NEWBS TYPE RF05A-NEWBS,  "전기키
+           NEWKO TYPE RF05A-NEWKO,  "계정
+           WRBTR TYPE BDC_FVAL,     "금액
+           BUPLA TYPE BSEG-BUPLA,   "사업장
+           GSBER TYPE COBL-GSBER,   "사업 영역
+           KOSTL TYPE COBL-KOSTL,   "코스트 센터
+           SGTXT TYPE BSEG-SGTXT,   "텍스트
+           ANLN1 TYPE RLAMBU-ANLN1, "자산
+           BWASL TYPE RLAMBU-BWASL, "거래유형
+           BZDAT TYPE RLAMBU-BZDAT. "자산평가기준일
+  TYPES: END OF TY_T_TEMPLATE.
+
+  DATA: LS_CONFIG   TYPE ZRDACL_EXCEL_COMMON=>TY_S_DOWNLOAD_CONFIG,
+        LT_TEMPLATE TYPE STANDARD TABLE OF TY_T_TEMPLATE WITH DEFAULT KEY.
+
+
+  LS_CONFIG-FILE_TITLE      = |ZFIR7001_Template_{ SY-DATUM }_{ SY-UZEIT }.xlsx|.
+  LS_CONFIG-WORKSHEET_TITLE =  TEXT-012.
+  LS_CONFIG-TABLE_STYLE     = ZCL_EXCEL_TABLE=>BUILTINSTYLE_LIGHT11.
+
+  APPEND INITIAL LINE TO LS_CONFIG-COLUMN_CONFIG ASSIGNING FIELD-SYMBOL(<FS_COLUMN_CONFIG>).
+  <FS_COLUMN_CONFIG>-FLDNM    = 'NEWBS'.
+  <FS_COLUMN_CONFIG>-FLDTXT   = TEXT-013.
+
+  APPEND INITIAL LINE TO LS_CONFIG-COLUMN_CONFIG ASSIGNING <FS_COLUMN_CONFIG>.
+  <FS_COLUMN_CONFIG>-FLDNM    = 'NEWKO'.
+  <FS_COLUMN_CONFIG>-FLDTXT   = TEXT-014.
+
+  APPEND INITIAL LINE TO LS_CONFIG-COLUMN_CONFIG ASSIGNING <FS_COLUMN_CONFIG>.
+  <FS_COLUMN_CONFIG>-FLDNM    = 'WRBTR'.
+  <FS_COLUMN_CONFIG>-FLDTXT   = TEXT-015.
+
+  APPEND INITIAL LINE TO LS_CONFIG-COLUMN_CONFIG ASSIGNING <FS_COLUMN_CONFIG>.
+  <FS_COLUMN_CONFIG>-FLDNM    = 'BUPLA'.
+  <FS_COLUMN_CONFIG>-FLDTXT   = TEXT-016.
+
+  APPEND INITIAL LINE TO LS_CONFIG-COLUMN_CONFIG ASSIGNING <FS_COLUMN_CONFIG>.
+  <FS_COLUMN_CONFIG>-FLDNM    = 'GSBER'.
+  <FS_COLUMN_CONFIG>-FLDTXT   = TEXT-017.
+
+  APPEND INITIAL LINE TO LS_CONFIG-COLUMN_CONFIG ASSIGNING <FS_COLUMN_CONFIG>.
+  <FS_COLUMN_CONFIG>-FLDNM    = 'KOSTL'.
+  <FS_COLUMN_CONFIG>-FLDTXT   = TEXT-018.
+
+  APPEND INITIAL LINE TO LS_CONFIG-COLUMN_CONFIG ASSIGNING <FS_COLUMN_CONFIG>.
+  <FS_COLUMN_CONFIG>-FLDNM    = 'SGTXT'.
+  <FS_COLUMN_CONFIG>-FLDTXT   = TEXT-019.
+
+  APPEND INITIAL LINE TO LS_CONFIG-COLUMN_CONFIG ASSIGNING <FS_COLUMN_CONFIG>.
+  <FS_COLUMN_CONFIG>-FLDNM    = 'ANLN1'.
+  <FS_COLUMN_CONFIG>-FLDTXT   = TEXT-020.
+
+  APPEND INITIAL LINE TO LS_CONFIG-COLUMN_CONFIG ASSIGNING <FS_COLUMN_CONFIG>.
+  <FS_COLUMN_CONFIG>-FLDNM    = 'BWASL'.
+  <FS_COLUMN_CONFIG>-FLDTXT   = TEXT-021.
+
+  APPEND INITIAL LINE TO LS_CONFIG-COLUMN_CONFIG ASSIGNING <FS_COLUMN_CONFIG>.
+  <FS_COLUMN_CONFIG>-FLDNM    = 'BZDAT'.
+  <FS_COLUMN_CONFIG>-FLDTXT   = TEXT-022.
+
+  ZCLRC_UTILS=>EXCEL_DOWNLOAD(
+    EXPORTING
+      IS_CONFIG = LS_CONFIG
+      IT_DATA   = LT_TEMPLATE ).
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form TEMPLATE_DOWNLOAD
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM TEMPLATE_DOWNLOAD .
+  CASE SSCRFIELDS-UCOMM.
+    WHEN 'FC01'.
+      PERFORM SET_FKEY.
+  ENDCASE.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form CHECK_VALID
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM CHECK_VALID.
+  CLEAR: GV_ERROR.
+
+  IF PA_FNAME IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-001  DISPLAY LIKE 'E'.
+  ELSEIF P_BLDAT IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-024  DISPLAY LIKE 'E'.
+  ELSEIF P_BLART IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-025 DISPLAY LIKE 'E'.
+  ELSEIF P_BUKRS IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-026 DISPLAY LIKE 'E'.
+  ELSEIF P_BUDAT IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-027 DISPLAY LIKE 'E'.
+  ELSEIF P_MONAT IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-028 DISPLAY LIKE 'E'.
+  ELSEIF P_WAERS IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-029 DISPLAY LIKE 'E'.
+  ELSEIF P_BKTXT IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-040 DISPLAY LIKE 'E'.
+  ELSEIF P_NEWBS IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-030 DISPLAY LIKE 'E'.
+  ELSEIF P_NEWKO IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-031 DISPLAY LIKE 'E'.
+  ELSEIF P_HKONT IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-032 DISPLAY LIKE 'E'.
+  ELSEIF P_WRBTR IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-033 DISPLAY LIKE 'E'.
+  ELSEIF P_GSBER IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-034 DISPLAY LIKE 'E'.
+  ELSEIF P_WMWST IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-035 DISPLAY LIKE 'E'.
+  ELSEIF P_MWSKZ IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-036 DISPLAY LIKE 'E'.
+  ELSEIF P_BUPLA IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-037 DISPLAY LIKE 'E'.
+  ELSEIF P_ZFBDT IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-038 DISPLAY LIKE 'E'.
+  ELSEIF P_ZTERM IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-039 DISPLAY LIKE 'E'.
+  ELSEIF P_SGTXT IS INITIAL.
+    GV_ERROR = 'E'.
+    MESSAGE S001(FSC1) WITH TEXT-041 DISPLAY LIKE 'E'.
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form F4_NEWKO
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM F4_NEWKO .
+
+  SELECT B~BUKRS, B~KUNNR, A~NAME1
+  FROM KNB1 AS B
+  JOIN KNA1 AS A
+    ON A~KUNNR = B~KUNNR
+  WHERE BUKRS  = @P_BUKRS
+  INTO TABLE @DATA(LT_NEWKO).
+
+
+  CALL FUNCTION 'F4IF_INT_TABLE_VALUE_REQUEST'
+    EXPORTING
+      RETFIELD    = 'NEWKO'
+      DYNPPROG    = SY-REPID
+      DYNPNR      = SY-DYNNR
+      VALUE_ORG   = 'S'
+      DYNPROFIELD = 'P_NEWKO'
+    TABLES
+      VALUE_TAB   = LT_NEWKO.
+ENDFORM.
