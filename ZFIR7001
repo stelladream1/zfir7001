@@ -1,0 +1,37 @@
+*&---------------------------------------------------------------------*
+*& Report ZFIR7001
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+
+INCLUDE ZFIR7001TOP                             .   " Global Data
+INCLUDE ZFIR7001SCR.
+INCLUDE ZFIR7001C01                             .
+INCLUDE ZFIR7001O01                             .  " PBO-Modules
+INCLUDE ZFIR7001I01                             .  " PAI-Modules
+INCLUDE ZFIR7001F01                             .  " FORM-Routines
+
+
+INITIALIZATION.
+  PERFORM SET_BUTTON.
+
+AT SELECTION-SCREEN.
+  PERFORM TEMPLATE_DOWNLOAD.
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR PA_FNAME.
+  PERFORM F4_FNAME USING PA_FNAME.
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR P_HKONT.
+  PERFORM F4_HKONT.
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR P_NEWKO.
+  PERFORM F4_NEWKO.
+
+START-OF-SELECTION.
+  PERFORM CHECK_VALID.
+  CHECK GV_ERROR IS INITIAL.
+
+  PERFORM UPLOAD_EXCEL.
+  IF GT_DATA IS NOT INITIAL.
+      PERFORM BDC_RECORDING.
+      PERFORM CALL_TRANSACTION.
+  ELSE.
+    MESSAGE TEXT-042 TYPE 'I'.
+  ENDIF.
