@@ -1,0 +1,49 @@
+*&---------------------------------------------------------------------*
+*& Include          ZFIR7001SCR
+*&---------------------------------------------------------------------*
+
+SELECTION-SCREEN BEGIN OF BLOCK 01 WITH FRAME TITLE TEXT-001.
+  PARAMETERS: PA_FNAME TYPE RLGRAP-FILENAME.
+SELECTION-SCREEN END OF BLOCK 01.
+
+SELECTION-SCREEN BEGIN OF BLOCK 06 WITH FRAME TITLE TEXT-009.
+  PARAMETERS: P_BDC(1) DEFAULT 'N'.
+SELECTION-SCREEN END OF BLOCK 06.
+
+SELECTION-SCREEN BEGIN OF BLOCK 02 WITH FRAME TITLE TEXT-002.
+
+  PARAMETERS: P_BLDAT TYPE BKPF-BLDAT,                   "증빙일
+              P_BLART TYPE BKPF-BLART,                   "전표유형
+              P_BUKRS TYPE BKPF-BUKRS MEMORY ID BUK,     "회사코드
+              P_BUDAT TYPE BKPF-BUDAT DEFAULT SY-DATUM,  "전기일
+              P_MONAT TYPE BKPF-MONAT DEFAULT SY-DATUM+4(2),  "전기 기간
+              P_WAERS TYPE BKPF-WAERS DEFAULT 'KRW' ,    "통화/환율
+              P_BKTXT TYPE BKPF-BKTXT.                   "전표헤더텍스트
+
+  SELECTION-SCREEN SKIP.
+  SELECTION-SCREEN BEGIN OF BLOCK 03 WITH FRAME TITLE TEXT-003 NO INTERVALS.
+    PARAMETERS: P_NEWBS TYPE RF05A-NEWBS ,                "전기 키
+                P_NEWKO TYPE RF05A-NEWKO.                 "계정
+  SELECTION-SCREEN END OF BLOCK 03.
+
+SELECTION-SCREEN END OF BLOCK 02.
+SELECTION-SCREEN SKIP.
+SELECTION-SCREEN BEGIN OF BLOCK 04 WITH FRAME TITLE TEXT-005.
+
+  PARAMETERS: P_HKONT TYPE BSEG-HKONT .                     "G/L계정
+  SELECTION-SCREEN SKIP.
+  SELECTION-SCREEN BEGIN OF BLOCK 05 WITH FRAME TITLE TEXT-006.
+    PARAMETERS: P_WRBTR TYPE C LENGTH 20 ,                 "금액
+                P_GSBER TYPE BSEG-GSBER ,                  "사업 영역
+                P_WMWST TYPE C LENGTH 20 ,                 "세액
+                P_MWSKZ TYPE BSEG-MWSKZ ,                  "세금 코드
+                P_BUPLA TYPE BSEG-BUPLA ,                  "사업장
+                P_ZFBDT TYPE BSEG-ZFBDT  DEFAULT SY-DATUM, "지급 기준일
+                P_ZTERM TYPE BSEG-ZTERM DEFAULT 'Z000',              "지급 조건
+                P_ZLSCH TYPE BSEG-ZLSCH,                             "지급방법
+                P_SGTXT TYPE BSEG-SGTXT.                             "텍스트
+
+  SELECTION-SCREEN END OF BLOCK 05.
+SELECTION-SCREEN END OF BLOCK 04.
+
+SELECTION-SCREEN: FUNCTION KEY 1.
